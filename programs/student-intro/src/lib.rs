@@ -5,7 +5,7 @@ use anchor_spl::token::{self, Mint, Token, TokenAccount};
 use mpl_token_metadata::instruction::create_metadata_accounts_v2;
 use mpl_token_metadata::ID as MetadataID;
 
-declare_id!("G5yKMSQaQVHo6LSJQ9fqXHDLZ2ckXCZSXmgy3DgtEx2p");
+declare_id!("33jyik6pY4TscDxFdeVsuHSLN2zpu6JNyPjm2AuqM9L5");
 
 #[program]
 pub mod student_intro {
@@ -50,23 +50,6 @@ pub mod student_intro {
         Ok(())
     }
 
-    pub fn update_student_intro(
-        ctx: Context<UpdateStudentIntro>,
-        name: String,
-        message: String,
-    ) -> Result<()> {
-        msg!("Updating Student Intro Account");
-        msg!("Name: {}", name);
-        msg!("Message: {}", message);
-
-        let student_intro = &mut ctx.accounts.student_intro;
-        student_intro.student = ctx.accounts.student.key();
-        student_intro.name = name;
-        student_intro.message = message;
-
-        Ok(())
-    }
-
     pub fn add_reply(ctx: Context<AddReply>, reply: String) -> Result<()> {
         msg!("Reply Account Created");
         msg!("Reply: {}", reply);
@@ -74,7 +57,7 @@ pub mod student_intro {
         let reply_account = &mut ctx.accounts.reply_account;
         let reply_counter = &mut ctx.accounts.reply_counter;
 
-        reply_account.studentinfo = ctx.accounts.student.key();
+        reply_account.studentinfo = ctx.accounts.student_intro.key();
         reply_account.reply = reply;
 
         reply_counter.counter += 1;
@@ -95,6 +78,23 @@ pub mod student_intro {
 
         token::mint_to(cpi_ctx, 5000000)?;
         msg!("Minted Tokens");
+
+        Ok(())
+    }
+
+    pub fn update_student_intro(
+        ctx: Context<UpdateStudentIntro>,
+        name: String,
+        message: String,
+    ) -> Result<()> {
+        msg!("Updating Student Intro Account");
+        msg!("Name: {}", name);
+        msg!("Message: {}", message);
+
+        let student_intro = &mut ctx.accounts.student_intro;
+        student_intro.student = ctx.accounts.student.key();
+        student_intro.name = name;
+        student_intro.message = message;
 
         Ok(())
     }
@@ -219,12 +219,9 @@ pub struct AddReply<'info> {
         space = 8 + 32 + 4 + reply.len()
     )]
     pub reply_account: Account<'info, Reply>,
-    #[account(
-        seeds = [student.key().as_ref()],
-        bump,
-    )]
     pub student_intro: Account<'info, StudentInfo>,
     #[account(
+        mut,
         seeds = ["counter".as_bytes(), student_intro.key().as_ref()],
         bump,
     )]
@@ -276,7 +273,6 @@ pub struct CreateTokenReward<'info> {
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,
-
     /// CHECK:
     #[account(mut)]
     pub metadata: AccountInfo<'info>,
@@ -292,7 +288,7 @@ pub struct StudentInfo {
 
 #[account]
 pub struct ReplyCounter {
-    pub counter: u8,
+    pub counter: u64,
 }
 
 #[account]

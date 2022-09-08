@@ -7,7 +7,6 @@ import { findMetadataPda } from "@metaplex-foundation/js"
 import { expect } from "chai"
 
 describe("student-intro", () => {
-  // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env())
 
   const program = anchor.workspace.StudentIntro as Program<StudentIntro>
@@ -127,18 +126,68 @@ describe("student-intro", () => {
     )
 
     const replyAccount = await program.account.reply.fetch(keys.replyAccount)
-
+    const replyCount = await program.account.replyCounter.fetch(
+      keys.replyCounter
+    )
+    console.log(replyCount.counter)
     expect(replyAccount.reply).is.equal(reply)
   })
 
-  it("Close", async () => {
-    const tx = await program.methods.close().accounts({
+  it("Add Second Reply", async () => {
+    const tx = await program.methods.addReply(reply).accounts({
+      studentIntro: studentIntro,
+      replyCounter: replyCounter,
+      tokenAccount: tokenAddress,
       student: userWallet.publicKey,
     })
+
+    const keys = await tx.pubkeys()
 
     const transactionSignature = await tx.rpc()
     console.log(
       `https://explorer.solana.com/tx/${transactionSignature}?cluster=devnet`
     )
+
+    const replyAccount = await program.account.reply.fetch(keys.replyAccount)
+    const replyCount = await program.account.replyCounter.fetch(
+      keys.replyCounter
+    )
+    console.log(replyCount.counter)
+    expect(replyAccount.reply).is.equal(reply)
   })
+
+  it("Add Third Reply", async () => {
+    const tx = await program.methods.addReply(reply).accounts({
+      studentIntro: studentIntro,
+      replyCounter: replyCounter,
+      tokenAccount: tokenAddress,
+      student: userWallet.publicKey,
+    })
+
+    const keys = await tx.pubkeys()
+
+    const transactionSignature = await tx.rpc()
+    console.log(
+      `https://explorer.solana.com/tx/${transactionSignature}?cluster=devnet`
+    )
+
+    const replyAccount = await program.account.reply.fetch(keys.replyAccount)
+    const replyCount = await program.account.replyCounter.fetch(
+      keys.replyCounter
+    )
+    console.log(replyCount.counter)
+
+    expect(replyAccount.reply).is.equal(reply)
+  })
+
+  // it("Close", async () => {
+  //   const tx = await program.methods.close().accounts({
+  //     student: userWallet.publicKey,
+  //   })
+
+  //   const transactionSignature = await tx.rpc()
+  //   console.log(
+  //     `https://explorer.solana.com/tx/${transactionSignature}?cluster=devnet`
+  //   )
+  // })
 })
