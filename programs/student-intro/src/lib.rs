@@ -1,11 +1,11 @@
-use anchor_lang::prelude::*;
-use anchor_lang::solana_program::program::invoke_signed;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{self, Mint, Token, TokenAccount};
-use mpl_token_metadata::instruction::create_metadata_accounts_v2;
-use mpl_token_metadata::ID as MetadataID;
+use anchor_lang::{prelude::*, solana_program::program::invoke_signed};
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{self, Mint, Token, TokenAccount},
+};
+use mpl_token_metadata::{instruction::create_metadata_accounts_v2, ID as MetadataID};
 
-declare_id!("33jyik6pY4TscDxFdeVsuHSLN2zpu6JNyPjm2AuqM9L5");
+declare_id!("2uRQTjVnidsgxpGuHb6nTiiHVbsYKJmkXBaDrC4B2Nm9");
 
 #[program]
 pub mod student_intro {
@@ -25,7 +25,7 @@ pub mod student_intro {
         student_intro.name = name;
         student_intro.message = message;
 
-        msg!("Movie Comment Counter Account Created");
+        msg!("Counter Account Created");
         let reply_counter = &mut ctx.accounts.reply_counter;
         reply_counter.counter = 0;
         msg!("Counter: {}", reply_counter.counter);

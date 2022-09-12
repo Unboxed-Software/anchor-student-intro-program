@@ -11,7 +11,7 @@ address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
 [features]
 seeds = true
 [programs.devnet]
-student_intro = "7HHxzxm7hsdA5HCBr3ctMv63YKBLnoEr8XL7MCdeAJDc"
+student_intro = "2uRQTjVnidsgxpGuHb6nTiiHVbsYKJmkXBaDrC4B2Nm9"
 
 [registry]
 url = "https://anchor.projectserum.com"

@@ -2,9 +2,9 @@ import * as anchor from "@project-serum/anchor"
 import { Program } from "@project-serum/anchor"
 import { PublicKey } from "@solana/web3.js"
 import { getAssociatedTokenAddress } from "@solana/spl-token"
-import { StudentIntro } from "../target/types/student_intro"
 import { findMetadataPda } from "@metaplex-foundation/js"
 import { expect } from "chai"
+import { StudentIntro } from "../target/types/student_intro"
 
 describe("student-intro", () => {
   anchor.setProvider(anchor.AnchorProvider.env())
@@ -49,7 +49,7 @@ describe("student-intro", () => {
         "SYMBOL"
       )
       .accounts({
-        user: userWallet.publicKey,
+        // user: userWallet.publicKey,
         metadata: metadataPDA,
         tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
       })
@@ -67,7 +67,7 @@ describe("student-intro", () => {
   it("Create Student Intro", async () => {
     const tx = await program.methods.addStudentIntro(name, message).accounts({
       tokenAccount: tokenAddress,
-      student: userWallet.publicKey,
+      // student: userWallet.publicKey,
     })
 
     const keys = await tx.pubkeys()
@@ -92,7 +92,7 @@ describe("student-intro", () => {
     const tx = await program.methods
       .updateStudentIntro(nameUpdate, messageUpdate)
       .accounts({
-        student: userWallet.publicKey,
+        // student: userWallet.publicKey,
       })
 
     const keys = await tx.pubkeys()
@@ -115,7 +115,7 @@ describe("student-intro", () => {
       studentIntro: studentIntro,
       replyCounter: replyCounter,
       tokenAccount: tokenAddress,
-      student: userWallet.publicKey,
+      // student: userWallet.publicKey,
     })
 
     const keys = await tx.pubkeys()
@@ -138,7 +138,7 @@ describe("student-intro", () => {
       studentIntro: studentIntro,
       replyCounter: replyCounter,
       tokenAccount: tokenAddress,
-      student: userWallet.publicKey,
+      // student: userWallet.publicKey,
     })
 
     const keys = await tx.pubkeys()
@@ -161,7 +161,7 @@ describe("student-intro", () => {
       studentIntro: studentIntro,
       replyCounter: replyCounter,
       tokenAccount: tokenAddress,
-      student: userWallet.publicKey,
+      // student: userWallet.publicKey,
     })
 
     const keys = await tx.pubkeys()
