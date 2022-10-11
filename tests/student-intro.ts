@@ -1,6 +1,7 @@
 import * as anchor from "@project-serum/anchor"
 import { Program } from "@project-serum/anchor"
 import { StudentIntro } from "../target/types/student_intro"
+import { expect } from "chai"
 import BN from "bn.js"
 
 describe("student-intro", () => {
@@ -10,14 +11,24 @@ describe("student-intro", () => {
   const program = anchor.workspace.StudentIntro as Program<StudentIntro>
   const userWallet = anchor.workspace.StudentIntro.provider.wallet
 
-  it("Is initialized!", async () => {
-    const [studentIntroPda] = await anchor.web3.PublicKey.findProgramAddress(
-      [userWallet.publicKey.toBuffer()],
-      program.programId
-    )
+  const student = {
+    name: "name",
+    message: "message",
+  }
 
+  const realloc = {
+    name: "realloc",
+    message: "realloc",
+  }
+
+  const [studentIntroPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [userWallet.publicKey.toBuffer()],
+    program.programId
+  )
+
+  it("Add Student Intro", async () => {
     const tx = await program.methods
-      .addStudentIntro("name", "message")
+      .addStudentIntro(student.name, student.message)
       .accounts({
         studentIntro: studentIntroPda,
         student: userWallet.publicKey,
@@ -25,13 +36,14 @@ describe("student-intro", () => {
       })
       .rpc()
 
-    const studenIntroAccount = await program.account.studentInfo.fetch(
-      studentIntroPda
-    )
-    console.log(studenIntroAccount)
+    const account = await program.account.studentInfo.fetch(studentIntroPda)
+    expect(student.name === account.name)
+    expect(student.message === account.message)
+  })
 
-    const tx2 = await program.methods
-      .updateStudentIntro("reallocate", "reallocate")
+  it("Update Student Intro", async () => {
+    const tx = await program.methods
+      .updateStudentIntro(realloc.name, realloc.message)
       .accounts({
         studentIntro: studentIntroPda,
         student: userWallet.publicKey,
@@ -39,17 +51,20 @@ describe("student-intro", () => {
       })
       .rpc()
 
-    const studenIntroAccountRealloc = await program.account.studentInfo.fetch(
-      studentIntroPda
-    )
-    console.log(studenIntroAccountRealloc)
+    const account = await program.account.studentInfo.fetch(studentIntroPda)
+    expect(realloc.name === account.name)
+    expect(realloc.message === account.message)
+  })
 
-    const tx3 = await program.methods
+  it("Close Account", async () => {
+    const tx = await program.methods
       .close()
       .accounts({
         studentIntro: studentIntroPda,
-        user: userWallet.publicKey,
+        student: userWallet.publicKey,
       })
       .rpc()
+
+    const account = await program.account.studentInfo.fetch(studentIntroPda)
   })
 })

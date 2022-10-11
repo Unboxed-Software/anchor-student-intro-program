@@ -80,10 +80,10 @@ pub struct UpdateStudentIntro<'info> {
 
 #[derive(Accounts)]
 pub struct Close<'info> {
-    #[account(mut, close = user)]
+    #[account(mut, seeds = [student.key().as_ref()], bump, close = student)]
     student_intro: Account<'info, StudentInfo>,
     #[account(mut)]
-    user: Signer<'info>,
+    student: Signer<'info>,
 }
 
 #[account]
