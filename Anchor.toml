@@ -17,7 +17,7 @@ student_intro = "2uRQTjVnidsgxpGuHb6nTiiHVbsYKJmkXBaDrC4B2Nm9"
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "/home/johnliu/.config/solana/id.json"
 
 [scripts]
