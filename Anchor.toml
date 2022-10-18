@@ -9,7 +9,7 @@ address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
 
 
 [features]
-seeds = true
+seeds = false
 [programs.devnet]
 student_intro = "2uRQTjVnidsgxpGuHb6nTiiHVbsYKJmkXBaDrC4B2Nm9"
 

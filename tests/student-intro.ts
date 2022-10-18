@@ -2,19 +2,14 @@ import * as anchor from "@project-serum/anchor"
 import { Program } from "@project-serum/anchor"
 import { PublicKey } from "@solana/web3.js"
 import { getAssociatedTokenAddressSync } from "@solana/spl-token"
-import { findMetadataPda } from "@metaplex-foundation/js"
 import { expect } from "chai"
 import { StudentIntro } from "../target/types/student_intro"
 
 describe("student-intro", () => {
-  anchor.setProvider(anchor.AnchorProvider.env())
+  const provider = anchor.AnchorProvider.env()
+  anchor.setProvider(provider)
 
   const program = anchor.workspace.StudentIntro as Program<StudentIntro>
-  const userWallet = anchor.workspace.StudentIntro.provider.wallet
-
-  const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
-    "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
-  )
 
   const student = {
     name: "name",
@@ -27,63 +22,52 @@ describe("student-intro", () => {
   }
   const reply = "reply"
 
-  const [mintPDA] = anchor.web3.PublicKey.findProgramAddressSync(
+  const [mint] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("mint")],
     program.programId
   )
 
   const tokenAddress = getAssociatedTokenAddressSync(
-    mintPDA,
-    userWallet.publicKey
+    mint,
+    provider.wallet.publicKey
   )
 
-  let studentIntro: PublicKey
-  let replyCounter: PublicKey
+  const [studentIntroPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [provider.wallet.publicKey.toBuffer()],
+    program.programId
+  )
 
-  it("Create Reward Mint", async () => {
-    const metadataPDA = await findMetadataPda(mintPDA)
+  const [replyCounterPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("counter"), studentIntroPda.toBuffer()],
+    program.programId
+  )
 
+  it("Initializes the reward token", async () => {
     const tx = await program.methods
-      .createRewardMint(
-        "https://arweave.net/hI558P7p936NjKKoRqvXNePQ-r122ji9BnM9vTTJJ_8",
-        "Token Name",
-        "SYMBOL"
-      )
+      .initializeTokenMint()
       .accounts({
-        metadata: metadataPDA,
-        tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+        mint: mint,
       })
-
-    const transactionSignature = await tx.rpc()
-
-    // console.log(
-    //   `https://explorer.solana.com/tx/${transactionSignature}?cluster=devnet`
-    // )
+      .rpc()
   })
 
   it("Create Student Intro", async () => {
     const tx = await program.methods
       .addStudentIntro(student.name, student.message)
       .accounts({
+        studentIntro: studentIntroPda,
+        replyCounter: replyCounterPda,
+        rewardMint: mint,
         tokenAccount: tokenAddress,
       })
-
-    const keys = await tx.pubkeys()
-
-    studentIntro = keys.studentIntro
-    replyCounter = keys.replyCounter
-
-    const transactionSignature = await tx.rpc()
-    // console.log(
-    //   `https://explorer.solana.com/tx/${transactionSignature}?cluster=devnet`
-    // )
+      .rpc()
 
     const studentIntroAccount = await program.account.studentInfo.fetch(
-      keys.studentIntro
+      studentIntroPda
     )
 
     const replyCountAccount = await program.account.replyCounter.fetch(
-      keys.replyCounter
+      replyCounterPda
     )
 
     expect(studentIntroAccount.name).is.equal(student.name)
@@ -92,20 +76,13 @@ describe("student-intro", () => {
   })
 
   it("Update", async () => {
-    const tx = await program.methods.updateStudentIntro(
-      realloc.name,
-      realloc.message
-    )
-
-    const keys = await tx.pubkeys()
-
-    const transactionSignature = await tx.rpc()
-    // console.log(
-    //   `https://explorer.solana.com/tx/${transactionSignature}?cluster=devnet`
-    // )
+    const tx = await program.methods
+      .updateStudentIntro(realloc.name, realloc.message)
+      .accounts({ studentIntro: studentIntroPda })
+      .rpc()
 
     const studentIntroAccount = await program.account.studentInfo.fetch(
-      keys.studentIntro
+      studentIntroPda
     )
 
     expect(studentIntroAccount.name).is.equal(realloc.name)
@@ -113,58 +90,75 @@ describe("student-intro", () => {
   })
 
   it("Add Reply", async () => {
-    const tx = await program.methods.addReply(reply).accounts({
-      studentIntro: studentIntro,
-      replyCounter: replyCounter,
-      tokenAccount: tokenAddress,
-      // student: userWallet.publicKey,
-    })
-
-    const keys = await tx.pubkeys()
-
-    const transactionSignature = await tx.rpc()
-    // console.log(
-    //   `https://explorer.solana.com/tx/${transactionSignature}?cluster=devnet`
-    // )
-
-    const replyAccount = await program.account.reply.fetch(keys.replyAccount)
-    const replyCount = await program.account.replyCounter.fetch(
-      keys.replyCounter
+    const replyCountAccount = await program.account.replyCounter.fetch(
+      replyCounterPda
     )
-    console.log(replyCount.counter)
+
+    const [replyPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        studentIntroPda.toBuffer(),
+        replyCountAccount.counter.toArrayLike(Buffer, "le", 8),
+      ],
+      program.programId
+    )
+
+    const tx = await program.methods
+      .addReply(reply)
+      .accounts({
+        replyAccount: replyPda,
+        studentIntro: studentIntroPda,
+        replyCounter: replyCounterPda,
+        rewardMint: mint,
+        tokenAccount: tokenAddress,
+      })
+      .rpc()
+
+    const replyAccount = await program.account.reply.fetch(replyPda)
+    const replyCounter = await program.account.replyCounter.fetch(
+      replyCounterPda
+    )
     expect(replyAccount.reply).is.equal(reply)
+    expect(replyCounter.counter.toNumber()).is.equal(1)
   })
 
   it("Add Second Reply", async () => {
-    const tx = await program.methods.addReply(reply).accounts({
-      studentIntro: studentIntro,
-      replyCounter: replyCounter,
-      tokenAccount: tokenAddress,
-    })
-
-    const keys = await tx.pubkeys()
-
-    const transactionSignature = await tx.rpc()
-    // console.log(
-    //   `https://explorer.solana.com/tx/${transactionSignature}?cluster=devnet`
-    // )
-
-    const replyAccount = await program.account.reply.fetch(keys.replyAccount)
-    const replyCount = await program.account.replyCounter.fetch(
-      keys.replyCounter
+    const replyCountAccount = await program.account.replyCounter.fetch(
+      replyCounterPda
     )
-    console.log(replyCount.counter)
+
+    const [replyPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        studentIntroPda.toBuffer(),
+        replyCountAccount.counter.toArrayLike(Buffer, "le", 8),
+      ],
+      program.programId
+    )
+
+    const tx = await program.methods
+      .addReply(reply)
+      .accounts({
+        replyAccount: replyPda,
+        studentIntro: studentIntroPda,
+        replyCounter: replyCounterPda,
+        rewardMint: mint,
+        tokenAccount: tokenAddress,
+      })
+      .rpc()
+
+    const replyAccount = await program.account.reply.fetch(replyPda)
+    const replyCounter = await program.account.replyCounter.fetch(
+      replyCounterPda
+    )
     expect(replyAccount.reply).is.equal(reply)
+    expect(replyCounter.counter.toNumber()).is.equal(2)
   })
 
   it("Close", async () => {
-    const tx = await program.methods.close().accounts({
-      student: userWallet.publicKey,
-    })
-
-    const transactionSignature = await tx.rpc()
-    // console.log(
-    //   `https://explorer.solana.com/tx/${transactionSignature}?cluster=devnet`
-    // )
+    const tx = await program.methods
+      .close()
+      .accounts({
+        studentIntro: studentIntroPda,
+      })
+      .rpc()
   })
 })
