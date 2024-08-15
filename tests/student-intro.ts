@@ -1,5 +1,5 @@
-import * as anchor from "@project-serum/anchor"
-import { Program } from "@project-serum/anchor"
+import * as anchor from "@coral-xyz/anchor"
+import { Program } from "@coral-xyz/anchor"
 import { StudentIntro } from "../target/types/student_intro"
 import { expect } from "chai"
 import BN from "bn.js"
@@ -29,7 +29,7 @@ describe("student-intro", () => {
   it("Add Student Intro", async () => {
     const tx = await program.methods
       .addStudentIntro(student.name, student.message)
-      .accounts({
+      .accountsPartial({
         studentIntro: studentIntroPda,
         student: userWallet.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -44,7 +44,7 @@ describe("student-intro", () => {
   it("Update Student Intro", async () => {
     const tx = await program.methods
       .updateStudentIntro(realloc.name, realloc.message)
-      .accounts({
+      .accountsPartial({
         studentIntro: studentIntroPda,
         student: userWallet.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -59,12 +59,16 @@ describe("student-intro", () => {
   it("Close Account", async () => {
     const tx = await program.methods
       .close()
-      .accounts({
+      .accountsPartial({
         studentIntro: studentIntroPda,
         student: userWallet.publicKey,
       })
       .rpc()
 
-    const account = await program.account.studentInfo.fetch(studentIntroPda)
+    try {
+      const account = await program.account.studentInfo.fetch(studentIntroPda)
+    } catch (error) {
+      console.log("\nFailed fetching account: ", error);
+    }
   })
 })

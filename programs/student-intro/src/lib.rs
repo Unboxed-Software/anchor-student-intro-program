@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
 
+mod constants;
+use constants::*;
+
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
@@ -15,10 +18,12 @@ pub mod student_intro {
         msg!("Name: {}", name);
         msg!("Message: {}", message);
 
-        let student_intro = &mut ctx.accounts.student_intro;
-        student_intro.student = ctx.accounts.student.key();
-        student_intro.name = name;
-        student_intro.message = message;
+        ctx.accounts.student_intro.set_inner(StudentInfo {
+            student: ctx.accounts.student.key(),
+            name,
+            message,
+            bump: ctx.bumps.student_intro,
+        });
 
         Ok(())
     }
@@ -53,7 +58,7 @@ pub struct AddStudentIntro<'info> {
         seeds = [student.key().as_ref()],
         bump,
         payer = student,
-        space = 8 + 32 + 4 + name.len() + 4 + message.len()
+        space = StudentInfo::INIT_SPACE + name.len() + message.len(),
     )]
     pub student_intro: Account<'info, StudentInfo>,
     #[account(mut)]
@@ -67,8 +72,8 @@ pub struct UpdateStudentIntro<'info> {
     #[account(
         mut,
         seeds = [student.key().as_ref()],
-        bump,
-        realloc = 8 + 32 + 4 + name.len() + 4 + message.len(),
+        bump = student_intro.bump,
+        realloc = StudentInfo::INIT_SPACE + name.len() + message.len(),
         realloc::payer = student,
         realloc::zero = false,
     )]
@@ -80,7 +85,12 @@ pub struct UpdateStudentIntro<'info> {
 
 #[derive(Accounts)]
 pub struct Close<'info> {
-    #[account(mut, seeds = [student.key().as_ref()], bump, close = student)]
+    #[account(
+        mut, 
+        seeds = [student.key().as_ref()], 
+        bump = student_intro.bump, 
+        close = student
+    )]
     student_intro: Account<'info, StudentInfo>,
     #[account(mut)]
     student: Signer<'info>,
@@ -91,4 +101,9 @@ pub struct StudentInfo {
     pub student: Pubkey, // 32
     pub name: String,    // 4 + len()
     pub message: String, // 4 + len()
+    pub bump: u8,        // 1
+}
+
+impl Space for StudentInfo {
+    const INIT_SPACE: usize = ANCHOR_DISCRIMINATOR + PUBKEY_SIZE + STRING_PREFIX_SIZE + STRING_PREFIX_SIZE + BUMP_SIZE;
 }
