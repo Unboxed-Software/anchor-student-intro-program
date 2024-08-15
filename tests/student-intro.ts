@@ -1,5 +1,5 @@
-import * as anchor from "@project-serum/anchor"
-import { Program } from "@project-serum/anchor"
+import * as anchor from "@coral-xyz/anchor"
+import { Program } from "@coral-xyz/anchor"
 import { PublicKey } from "@solana/web3.js"
 import { getAssociatedTokenAddressSync } from "@solana/spl-token"
 import { expect } from "chai"
@@ -45,7 +45,7 @@ describe("student-intro", () => {
   it("Initializes the reward token", async () => {
     const tx = await program.methods
       .initializeTokenMint()
-      .accounts({
+      .accountsPartial({
         mint: mint,
       })
       .rpc()
@@ -54,7 +54,7 @@ describe("student-intro", () => {
   it("Create Student Intro", async () => {
     const tx = await program.methods
       .addStudentIntro(student.name, student.message)
-      .accounts({
+      .accountsPartial({
         studentIntro: studentIntroPda,
         replyCounter: replyCounterPda,
         rewardMint: mint,
@@ -78,7 +78,7 @@ describe("student-intro", () => {
   it("Update", async () => {
     const tx = await program.methods
       .updateStudentIntro(realloc.name, realloc.message)
-      .accounts({ studentIntro: studentIntroPda })
+      .accountsPartial({ studentIntro: studentIntroPda })
       .rpc()
 
     const studentIntroAccount = await program.account.studentInfo.fetch(
@@ -104,7 +104,7 @@ describe("student-intro", () => {
 
     const tx = await program.methods
       .addReply(reply)
-      .accounts({
+      .accountsPartial({
         replyAccount: replyPda,
         studentIntro: studentIntroPda,
         replyCounter: replyCounterPda,
@@ -136,7 +136,7 @@ describe("student-intro", () => {
 
     const tx = await program.methods
       .addReply(reply)
-      .accounts({
+      .accountsPartial({
         replyAccount: replyPda,
         studentIntro: studentIntroPda,
         replyCounter: replyCounterPda,

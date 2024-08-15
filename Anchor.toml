@@ -1,24 +1,20 @@
-[test]
-startup_wait = 10000
-
-[test.validator]
-url = "https://api.mainnet-beta.solana.com"
-
-[[test.validator.clone]]
-address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
-
-
 [features]
 seeds = false
-[programs.devnet]
-student_intro = "2uRQTjVnidsgxpGuHb6nTiiHVbsYKJmkXBaDrC4B2Nm9"
+[programs.localnet]
+student_intro = "F5CRSSYC1ZrDq1tenY36wvGopPoqFJ5Sb3KQjzYa8eYR"
 
 [registry]
 url = "https://anchor.projectserum.com"
 
 [provider]
 cluster = "localnet"
-wallet = "/home/johnliu/.config/solana/id.json"
+wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+[test.validator]
+url = "https://api.mainnet-beta.solana.com"
+
+[[test.validator.clone]]
+address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"

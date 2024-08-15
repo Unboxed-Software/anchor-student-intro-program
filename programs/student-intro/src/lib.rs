@@ -4,7 +4,10 @@ use anchor_spl::{
     token::{self, Mint, Token, TokenAccount},
 };
 
-declare_id!("2uRQTjVnidsgxpGuHb6nTiiHVbsYKJmkXBaDrC4B2Nm9");
+mod constants;
+use constants::*;
+
+declare_id!("F5CRSSYC1ZrDq1tenY36wvGopPoqFJ5Sb3KQjzYa8eYR");
 
 #[program]
 pub mod student_intro {
@@ -19,18 +22,24 @@ pub mod student_intro {
         msg!("Name: {}", name);
         msg!("Message: {}", message);
 
-        let student_intro = &mut ctx.accounts.student_intro;
-        student_intro.student = ctx.accounts.student.key();
-        student_intro.name = name;
-        student_intro.message = message;
+        ctx.accounts.student_intro.set_inner(StudentInfo {
+            student: ctx.accounts.student.key(),
+            name,
+            message,
+            bump: ctx.bumps.student_intro,
+        });
 
         msg!("Counter Account Created");
-        let reply_counter = &mut ctx.accounts.reply_counter;
-        reply_counter.counter = 0;
-        msg!("Counter: {}", reply_counter.counter);
+        ctx.accounts.reply_counter.set_inner(ReplyCounter {
+            counter: 0,
+            bump: ctx.bumps.reply_counter,
+        });
+        msg!("Counter: {}", ctx.accounts.reply_counter.counter);
 
-        let seeds = &["mint".as_bytes(), &[*ctx.bumps.get("reward_mint").unwrap()]];
-
+        let seeds = &[
+            "mint".as_bytes(), 
+            &[ctx.bumps.reward_mint]
+        ];
         let signer = [&seeds[..]];
 
         let cpi_ctx = CpiContext::new_with_signer(
@@ -61,8 +70,10 @@ pub mod student_intro {
 
         reply_counter.counter += 1;
 
-        let seeds = &["mint".as_bytes(), &[*ctx.bumps.get("reward_mint").unwrap()]];
-
+        let seeds = &[
+            "mint".as_bytes(), 
+            &[ctx.bumps.reward_mint]
+        ];
         let signer = [&seeds[..]];
 
         let cpi_ctx = CpiContext::new_with_signer(
@@ -116,7 +127,7 @@ pub struct AddStudentIntro<'info> {
         seeds = [student.key().as_ref()],
         bump,
         payer = student,
-        space = 8 + 32 + 4 + name.len() + 4 + message.len()
+        space = StudentInfo::INIT_SPACE + name.len() + message.len()
     )]
     pub student_intro: Account<'info, StudentInfo>,
     #[account(
@@ -124,7 +135,7 @@ pub struct AddStudentIntro<'info> {
         seeds = ["counter".as_bytes(), student_intro.key().as_ref()],
         bump,
         payer = student,
-        space = 8 + 8
+        space = 8 + ReplyCounter::INIT_SPACE,
     )]
     pub reply_counter: Account<'info, ReplyCounter>,
     #[account(mut,
@@ -143,7 +154,6 @@ pub struct AddStudentIntro<'info> {
     pub student: Signer<'info>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
 }
 
@@ -153,10 +163,10 @@ pub struct UpdateStudentIntro<'info> {
     #[account(
         mut,
         seeds = [student.key().as_ref()],
-        bump,
-        realloc = 8 + 32 + 4 + name.len() + 4 + message.len(),
+        bump = student_intro.bump,
+        realloc = StudentInfo::INIT_SPACE + name.len() + message.len(),
         realloc::payer = student,
-        realloc::zero = false,
+        realloc::zero = true,
     )]
     pub student_intro: Account<'info, StudentInfo>,
     #[account(mut)]
@@ -172,14 +182,14 @@ pub struct AddReply<'info> {
         seeds = [student_intro.key().as_ref(), &reply_counter.counter.to_le_bytes()],
         bump,
         payer = student,
-        space = 8 + 32 + 4 + reply.len()
+        space = Reply::INIT_SPACE + reply.len()
     )]
     pub reply_account: Account<'info, Reply>,
     pub student_intro: Account<'info, StudentInfo>,
     #[account(
         mut,
         seeds = ["counter".as_bytes(), student_intro.key().as_ref()],
-        bump,
+        bump = reply_counter.bump,
     )]
     pub reply_counter: Account<'info, ReplyCounter>,
     #[account(mut,
@@ -198,14 +208,18 @@ pub struct AddReply<'info> {
     pub student: Signer<'info>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct Close<'info> {
-    #[account(mut, close = student, has_one = student, seeds = [student.key().as_ref()],
-        bump,)]
+    #[account(
+        mut, 
+        close = student, 
+        has_one = student, 
+        seeds = [student.key().as_ref()],
+        bump = student_intro.bump,
+    )]
     student_intro: Account<'info, StudentInfo>,
     #[account(mut)]
     student: Signer<'info>,
@@ -234,15 +248,26 @@ pub struct StudentInfo {
     pub student: Pubkey, // 32
     pub name: String,    // 4 + len()
     pub message: String, // 4 + len()
+    pub bump: u8,        // 1
+}
+
+impl Space for StudentInfo {
+    const INIT_SPACE: usize = ANCHOR_DISCRIMINATOR + PUBKEY_SIZE + STRING_PREFIX_SIZE + STRING_PREFIX_SIZE + BUMP_SIZE;
 }
 
 #[account]
+#[derive(InitSpace)]
 pub struct ReplyCounter {
-    pub counter: u64,
+    pub counter: u64, // 8
+    pub bump: u8, // 1
 }
 
 #[account]
 pub struct Reply {
-    pub studentinfo: Pubkey,
-    pub reply: String,
+    pub studentinfo: Pubkey, // 32
+    pub reply: String, // 4 + len()
+}
+
+impl Space for Reply {
+    const INIT_SPACE: usize = ANCHOR_DISCRIMINATOR + PUBKEY_SIZE + STRING_PREFIX_SIZE;
 }
